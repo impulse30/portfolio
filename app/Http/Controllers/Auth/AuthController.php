@@ -11,59 +11,59 @@ use Illuminate\Support\Facades\Validator;
 class AuthController extends Controller
 {
 
- public function register(Request $request){
-     $validated = Validator::make($request->all(),[
-         'name'=>'required|string',
-         'email'=>'required|email',
-         'password'=>'required|confirmed'
+        public function register(Request $request){
+            $validated = Validator::make($request->all(),[
+                'name'=>'required|string',
+                'email'=>'required|email',
+                'password'=>'required|min:6|confirmed'
 
-     ]);
-     if($validated->fails()){
-         return response()->json($validated->errors());
-     }
-     $user = User::where('email',$request->email)->first();
-     if($user){
-         return response()->json(['error'=>'Email already exists']);
-     }
-     try {
-         $user =User::create([
-             'name'=>$request->name,
-             'email'=>$request->email,
-             'password'=>Hash::make($request->password)
+            ]);
+            if($validated->fails()){
+                return response()->json($validated->errors());
+            }
+            $user =User::where('email',$request->email)->first();
+            if($user){
+                return response()->json(["error"=>"Cet email existe deja "]);
+            }
 
-         ]);
-         $token = $user->createToken('token')->plainTextToken;
-         $user['token']=$token;
-         return response()->json(['message'=>'User created successfully','data'=>$user]);
+            try {
+                $user = User::create([
+                    'name'=>$request->name,
+                    'email'=>$request->email,
+                    'password'=>Hash::make($request->password)
 
-     }catch (\Exception $exception){
-         return response()->json(['error'=>$exception->getMessage()]);
-     }
- }
- public function login(Request $request){
-     $validated = Validator::make($request->all(),[
-         'email'=>'required|email',
-         'password'=>'required'
+                ]);
 
-     ]);
+                $token =$user->createToken('token')->plainTextToken;
+                $user['token']=$token;
+                return response()->json(["message"=>"User created successfully","data"=>$user]);
 
-     if($validated->fails()){
-         return response()->json($validated->errors());
-     }
-     $credentials =$request->only('email','password');
-     if(!auth()->attempt($credentials)){
-         return response()->json(['error'=>'Email or Password not matched']);
-     }
-     try {
-         $user =User::where('email',$request->email)->first();
-         $token=$user->createToken('token')->plainTextToken;
-         $user['token']=$token;
-         return response()->json(['message'=>'User login successfully','data'=>$user]);
+            }catch(\Exception $e){
+                return response()->json(["error"=>$e->getMessage()]);
+            }
+        }
 
-     }catch (\Exception $exception){
-         return response()->json(['error'=>$exception->getMessage()]);
-     }
+        public function login(Request $request){
+            $validated = Validator::make($request->all(),[
+                'email'=>'required|email',
+                'password'=>'required'
+            ]);
+            if($validated->fails()){
+                return response()->json(["error"=>$validated->errors()]);
+            }
+            $credentials = ["email"=>$request->email,"password"=>$request->password];
+            if(!auth()->attempt($credentials)){
+                return response()->json(["error"=>'email ou mot de passe incorrect']);
+            }
+            try {
+                $user =User::where('email',$request->email)->firstOrFail();
+                $token = $user->createToken('token')->plainTextToken;
+                $user['token']=$token;
+                return response()->json(["message"=>"user login successfully","data"=>$user]);
 
- }
+            }catch (\Exception $e){
+                return response()->json(["error"=>$e->getMessage()]);
+            }
+        }
 
 }
